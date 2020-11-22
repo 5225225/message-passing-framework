@@ -10,7 +10,7 @@ pub struct MessageHeader<T: MessageKind> {
     /// The kind of invariant in the message body, used as an identifier
     pub id: T,
     /// the length of the message in bytes
-    pub size: usize,
+    pub size: u32,
 }
 
 pub struct Message<T: MessageKind> {
@@ -22,7 +22,7 @@ impl<T: MessageKind> Message<T> {
     pub fn new(id: T) -> Self {
         let header = MessageHeader {
             id,
-            size: std::mem::size_of::<MessageHeader<T>>(),
+            size: std::mem::size_of::<MessageHeader<T>>() as u32,
         };
 
         Self {
@@ -31,8 +31,8 @@ impl<T: MessageKind> Message<T> {
         }
     }
 
-    pub fn size(&self) -> usize {
-        std::mem::size_of::<MessageHeader<T>>() + self.body.len()
+    pub fn size(&self) -> u32 {
+        (std::mem::size_of::<MessageHeader<T>>() + self.body.len()) as u32
     }
 
     pub fn push<V: Pod>(&mut self, data: V) {
@@ -56,7 +56,8 @@ impl<T: MessageKind> Message<T> {
         self.header.size = self.size();
     }
 
-    pub fn pull<V: Pod>(&mut self, bytes: usize) -> V {
+    pub fn pull<V: Pod>(&mut self) -> V {
+        let bytes = std::mem::size_of::<V>();
         let i = self.body.len() - bytes;
 
         let out = unsafe {

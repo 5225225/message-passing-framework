@@ -1,11 +1,12 @@
-pub trait Pod: 'static + Copy + Sized + Send + Sync {}
+pub trait Pod: 'static + Copy + Sized + Send + Sync + std::fmt::Debug {}
 
-impl<T: 'static + Copy + Sized + Send + Sync> Pod for T {}
+impl<T: 'static + Copy + Sized + Send + Sync + std::fmt::Debug> Pod for T {}
 
 pub trait MessageKind: std::fmt::Display + Pod {}
 
 /// T represents an Enum which tells both sides what kind of message is being
 /// passed in the body of the message
+#[derive(Debug)]
 pub struct MessageHeader<T: MessageKind> {
     /// The kind of invariant in the message body, used as an identifier
     pub id: T,
@@ -13,6 +14,7 @@ pub struct MessageHeader<T: MessageKind> {
     pub size: u32,
 }
 
+#[derive(Debug)]
 pub struct Message<T: MessageKind> {
     pub header: MessageHeader<T>,
     pub body: Vec<u8>,
@@ -78,5 +80,103 @@ impl<T: MessageKind> Message<T> {
 impl<T: MessageKind> std::fmt::Display for Message<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ID:{} Size:{}", self.header.id, self.header.size)
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+    #[derive(Clone, Copy, Debug)]
+    pub enum CustomMsg {
+        Interact(usize),
+        #[allow(dead_code)]
+        MovePlayer(usize),
+    }
+
+    impl std::fmt::Display for CustomMsg {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                CustomMsg::Interact(id) => write!(f, "Interact({})", id),
+                CustomMsg::MovePlayer(id) => write!(f, "MovePlayer({})", id),
+            }
+        }
+    }
+
+    impl MessageKind for CustomMsg {}
+
+    #[derive(Clone, Copy, Debug)]
+    struct F2 {
+        x: f32,
+        y: f32,
+    }
+
+    #[derive(Clone, Copy, Debug)]
+    struct Complex {
+        a: u32,
+        b: bool,
+        c: f32,
+        d: [F2; 2],
+    }
+
+    #[test]
+    fn messages() {
+        let id = CustomMsg::Interact(23);
+        let mut message = Message::new(id);
+
+        let a = 2;
+        let b = true;
+        let c: f32 = 3.14159;
+        println!("a; {}", a);
+        println!("b: {}", b);
+        println!("c: {}", c);
+
+        let d = [
+            F2 { x: 1., y: 2. },
+            F2 {
+                x: 1.243,
+                y: -1234.1,
+            },
+        ];
+
+        println!("d: {:?}", d);
+
+        println!("{}", message);
+        message.push(a);
+        println!("{}", message);
+        message.push(b);
+        println!("{}", message);
+        message.push(c);
+        println!("{}", message);
+        message.push(d);
+        println!("{}", message);
+
+        let out_d: [F2; 2] = message.pull();
+        let out_c: f32 = message.pull();
+        println!("{}", message);
+        let out_b: bool = message.pull();
+        println!("{}", message);
+        let out_a: u32 = message.pull();
+        //let (out_d, out_c, out_b, out_a): ([F2; 2], f32, bool, u32) = message.pull(25);
+        //let (out_a, out_b, out_c, out_d): (u32, bool, f32, [F2; 2]) = message.pull(25);
+        println!("{}", message);
+        println!("out_a; {}", out_a);
+        println!("out_b: {}", out_b);
+        println!("out_c: {}", out_c);
+        println!("out_d: {:?}", out_d);
+
+        assert_eq!(a, out_a);
+        assert_eq!(b, out_b);
+        assert_eq!(c, out_c);
+
+        let complex = Complex { a, b, c, d };
+        println!("complex: {:#?}", complex);
+        message.push(complex);
+        println!("{}", message);
+        let out_complex = message.pull::<Complex>();
+        println!("{}", message);
+        println!("out_complex: {:#?}", out_complex);
+        assert_eq!(complex.a, out_complex.a);
+        assert_eq!(complex.b, out_complex.b);
+        assert_eq!(complex.c, out_complex.c);
     }
 }

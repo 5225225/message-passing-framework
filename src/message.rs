@@ -2,7 +2,7 @@ pub trait Pod: 'static + Copy + Sized + Send + Sync + std::fmt::Debug {}
 
 impl<T: 'static + Copy + Sized + Send + Sync + std::fmt::Debug> Pod for T {}
 
-pub trait MessageKind: std::fmt::Display + Pod {}
+pub trait MessageKind: Pod {}
 
 /// T represents an Enum which tells both sides what kind of message is being
 /// passed in the body of the message
@@ -79,7 +79,7 @@ impl<T: MessageKind> Message<T> {
 
 impl<T: MessageKind> std::fmt::Display for Message<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "ID:{} Size:{}", self.header.id, self.header.size)
+        write!(f, "ID:{:?} Size:{:?}", self.header.id, self.header.size)
     }
 }
 
@@ -172,9 +172,9 @@ mod test {
         let a = 2;
         let b = true;
         let c: f32 = 3.14159;
-        println!("a; {}", a);
-        println!("b: {}", b);
-        println!("c: {}", c);
+        println!("a; {:?}", a);
+        println!("b: {:?}", b);
+        println!("c: {:?}", c);
 
         let d = [
             F2 { x: 1., y: 2. },
@@ -186,28 +186,28 @@ mod test {
 
         println!("d: {:?}", d);
 
-        println!("{}", message);
+        println!("{:?}", message);
         message.push(a);
-        println!("{}", message);
+        println!("{:?}", message);
         message.push(b);
-        println!("{}", message);
+        println!("{:?}", message);
         message.push(c);
-        println!("{}", message);
+        println!("{:?}", message);
         message.push(d);
-        println!("{}", message);
+        println!("{:?}", message);
 
         let out_d: [F2; 2] = message.pull();
         let out_c: f32 = message.pull();
-        println!("{}", message);
+        println!("{:?}", message);
         let out_b: bool = message.pull();
-        println!("{}", message);
+        println!("{:?}", message);
         let out_a: u32 = message.pull();
         //let (out_d, out_c, out_b, out_a): ([F2; 2], f32, bool, u32) = message.pull(25);
         //let (out_a, out_b, out_c, out_d): (u32, bool, f32, [F2; 2]) = message.pull(25);
-        println!("{}", message);
-        println!("out_a; {}", out_a);
-        println!("out_b: {}", out_b);
-        println!("out_c: {}", out_c);
+        println!("{:?}", message);
+        println!("out_a; {:?}", out_a);
+        println!("out_b: {:?}", out_b);
+        println!("out_c: {:?}", out_c);
         println!("out_d: {:?}", out_d);
 
         assert_eq!(a, out_a);
@@ -217,9 +217,9 @@ mod test {
         let complex = Complex { a, b, c, d };
         println!("complex: {:#?}", complex);
         message.push(complex);
-        println!("{}", message);
+        println!("{:?}", message);
         let out_complex = message.pull::<Complex>();
-        println!("{}", message);
+        println!("{:?}", message);
         println!("out_complex: {:#?}", out_complex);
         assert_eq!(complex.a, out_complex.a);
         assert_eq!(complex.b, out_complex.b);

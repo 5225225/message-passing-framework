@@ -1,6 +1,5 @@
 use message_passing_framework::message::{Message, MessageKind};
 use message_passing_framework::server::ServerInterface;
-use tokio::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CustomMsg {
@@ -47,6 +46,17 @@ async fn main() {
         if connection_count != server.connection_count() {
             server.send_to_all(ping).await;
             connection_count = server.connection_count();
+        }
+
+        if let Some(mut msg) = server.pop_message() {
+            match msg.header.id {
+                CustomMsg::Ping => {}
+                CustomMsg::Interact(_) => {}
+                CustomMsg::MovePlayer(_) => {
+                    let parse: Complex = msg.pull();
+                    println!("parsed bytes for MovePlayer: {:#?}", parse);
+                }
+            }
         }
     }
 }

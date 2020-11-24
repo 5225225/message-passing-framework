@@ -6,16 +6,7 @@ pub enum CustomMsg {
     Ping,
     Interact(usize),
     MovePlayer(usize),
-}
-
-impl std::fmt::Display for CustomMsg {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            CustomMsg::Ping => write!(f, "Ping"),
-            CustomMsg::Interact(id) => write!(f, "Interact({})", id),
-            CustomMsg::MovePlayer(id) => write!(f, "MovePlayer({})", id),
-        }
-    }
+    Player(usize),
 }
 
 impl MessageKind for CustomMsg {}
@@ -38,7 +29,21 @@ struct Complex {
 async fn main() {
     let mut client: ClientInterface<CustomMsg> = ClientInterface::new();
     println!("{:?}", client.connect("127.0.0.1", 8080).await);
-    let message: Message<CustomMsg> = Message::new(CustomMsg::Ping);
+    println!("size of CustomMsg {:?}", std::mem::size_of::<CustomMsg>());
+    let mut message: Message<CustomMsg> = Message::new(CustomMsg::MovePlayer(3413));
+
+    message.push(Complex {
+        a: 2,
+        b: true,
+        c: 3.14,
+        d: [
+            F2 { x: 1., y: 2. },
+            F2 {
+                x: -213.234,
+                y: 514.4223,
+            },
+        ],
+    });
 
     client.send(message).await.unwrap();
 

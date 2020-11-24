@@ -55,6 +55,10 @@ impl<T: MessageKind> ServerInterface<T> {
         self.connections.lock().unwrap().len()
     }
 
+    pub fn pop_message(&mut self) -> Option<Message<T>> {
+        self.messages_in.lock().unwrap().pop_front()
+    }
+
     fn listen_for_connections(&self) {
         let port = self.port;
         let connections = self.connections.clone();

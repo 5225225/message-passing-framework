@@ -1,9 +1,10 @@
-use message_passing_framework::message::MessageKind;
+use message_passing_framework::message::{Message, MessageKind};
 use message_passing_framework::server::ServerInterface;
 use tokio::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CustomMsg {
+    Ping,
     Interact(usize),
     MovePlayer(usize),
 }
@@ -11,6 +12,7 @@ pub enum CustomMsg {
 impl std::fmt::Display for CustomMsg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            CustomMsg::Ping => write!(f, "Ping"),
             CustomMsg::Interact(id) => write!(f, "Interact({})", id),
             CustomMsg::MovePlayer(id) => write!(f, "MovePlayer({})", id),
         }
@@ -37,4 +39,14 @@ struct Complex {
 async fn main() {
     let mut server: ServerInterface<CustomMsg> = ServerInterface::new(8080);
     server.start().await;
+    let mut connection_count = 0;
+
+    loop {
+        server.update().await;
+        let ping = Message::new(CustomMsg::Ping);
+        if connection_count != server.connection_count() {
+            server.send_to_all(ping).await;
+            connection_count = server.connection_count();
+        }
+    }
 }

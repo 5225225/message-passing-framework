@@ -6,7 +6,7 @@ pub trait MessageKind: std::fmt::Display + Pod {}
 
 /// T represents an Enum which tells both sides what kind of message is being
 /// passed in the body of the message
-#[derive(Debug)]
+#[derive(Debug, Clone, Copy)]
 pub struct MessageHeader<T: MessageKind> {
     /// The kind of invariant in the message body, used as an identifier
     pub id: T,
@@ -14,7 +14,7 @@ pub struct MessageHeader<T: MessageKind> {
     pub size: u32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Message<T: MessageKind> {
     pub header: MessageHeader<T>,
     pub body: Vec<u8>,
@@ -80,6 +80,52 @@ impl<T: MessageKind> Message<T> {
 impl<T: MessageKind> std::fmt::Display for Message<T> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(f, "ID:{} Size:{}", self.header.id, self.header.size)
+    }
+}
+
+impl<T: MessageKind> From<Message<T>> for Vec<u8> {
+    fn from(msg: Message<T>) -> Self {
+        let header_size = std::mem::size_of::<MessageHeader<T>>();
+        let body_len = msg.body.len();
+        let mut out = Vec::with_capacity(header_size + body_len);
+
+        unsafe {
+            let data_ptr: *const MessageHeader<T> = &msg.header;
+            let byte_ptr: *const u8 = data_ptr as *const _;
+            let byte_slice: &[u8] = std::slice::from_raw_parts(byte_ptr, header_size);
+
+            out.extend_from_slice(&byte_slice);
+
+            if body_len > 0 {
+                out.extend_from_slice(&msg.body);
+            }
+            out
+        }
+    }
+}
+
+impl<T: MessageKind> From<&[u8]> for Message<T> {
+    fn from(bytes: &[u8]) -> Self {
+        let header_size = std::mem::size_of::<MessageHeader<T>>();
+        let bytes_len = bytes.len();
+        if bytes_len < header_size {
+            panic!("no, this is not header");
+        }
+
+        let header: MessageHeader<T> = unsafe { std::mem::transmute_copy(&bytes[0]) };
+
+        if header.size != bytes_len as u32 {
+            panic!(
+                "Expected size:{} in header, got:{}",
+                bytes.len(),
+                header.size
+            );
+        }
+
+        let body_bytes = &bytes[header_size..];
+        let body = Vec::from(body_bytes);
+
+        Self { header, body }
     }
 }
 

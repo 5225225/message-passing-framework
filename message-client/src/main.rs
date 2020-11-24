@@ -1,9 +1,9 @@
 use message_passing_framework::client::ClientInterface;
 use message_passing_framework::message::{Message, MessageKind};
-use tokio::prelude::*;
 
 #[derive(Clone, Copy, Debug)]
 pub enum CustomMsg {
+    Ping,
     Interact(usize),
     MovePlayer(usize),
 }
@@ -11,6 +11,7 @@ pub enum CustomMsg {
 impl std::fmt::Display for CustomMsg {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            CustomMsg::Ping => write!(f, "Ping"),
             CustomMsg::Interact(id) => write!(f, "Interact({})", id),
             CustomMsg::MovePlayer(id) => write!(f, "MovePlayer({})", id),
         }
@@ -37,5 +38,9 @@ struct Complex {
 async fn main() {
     let mut client: ClientInterface<CustomMsg> = ClientInterface::new();
     println!("{:?}", client.connect("127.0.0.1", 8080).await);
+    let message: Message<CustomMsg> = Message::new(CustomMsg::Ping);
+
+    client.send(message).await.unwrap();
+
     loop {}
 }

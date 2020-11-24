@@ -2,19 +2,19 @@ use crate::connection::Connection;
 use crate::message::{Message, MessageKind};
 use crate::Command;
 use std::collections::VecDeque;
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex};
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tokio::task;
 
 pub struct ClientInterface<T: MessageKind> {
-    messages_in: Arc<RwLock<VecDeque<Message<T>>>>,
+    messages_in: Arc<Mutex<VecDeque<Message<T>>>>,
     connection_tx: Sender<Command<T>>,
     connection_handle: task::JoinHandle<()>,
 }
 
 impl<T: MessageKind> ClientInterface<T> {
     pub fn new() -> Self {
-        let messages_in = Arc::new(RwLock::new(VecDeque::new()));
+        let messages_in = Arc::new(Mutex::new(VecDeque::new()));
         let (connection_tx, mut cmd_rx) = mpsc::channel::<Command<T>>(32);
 
         let messages_in_clone = messages_in.clone();
@@ -29,6 +29,7 @@ impl<T: MessageKind> ClientInterface<T> {
                         let res = connection.connect_to_server(&addr).await;
                         if res.is_ok() {
                             connection.start_read_loop();
+                            connection.start_write_loop();
                         }
                         let _ = resp.send(res);
                     }
@@ -37,7 +38,7 @@ impl<T: MessageKind> ClientInterface<T> {
                         let _ = resp.send(Ok(()));
                     }
                     Command::Ping { resp } => {
-                        connection.ping().await;
+                        //connection.ping().await;
                         let _ = resp.send(Ok(()));
                     }
                 }
@@ -62,6 +63,19 @@ impl<T: MessageKind> ClientInterface<T> {
             addr: format!("{}:{}", host, port),
             resp: resp_tx,
         };
+
+        match self.connection_tx.clone().send(cmd).await {
+            Ok(_) => {}
+            Err(e) => return Err(Box::new(e)),
+        }
+
+        resp_rx.await.expect("client sender dropped")
+    }
+
+    pub async fn send(&mut self, msg: Message<T>) -> Result<(), Box<dyn std::error::Error + Send>> {
+        let (resp_tx, resp_rx) = oneshot::channel();
+
+        let cmd = Command::Send { msg, resp: resp_tx };
 
         match self.connection_tx.clone().send(cmd).await {
             Ok(_) => {}

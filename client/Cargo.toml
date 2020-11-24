@@ -1,5 +1,5 @@
 [package]
-name = "message-client"
+name = "client"
 version = "0.1.0"
 authors = ["Alec Goncharow <Alec.Goncharow@gmail.com>"]
 edition = "2018"
@@ -8,4 +8,5 @@ edition = "2018"
 
 [dependencies]
 tokio = "0.3.4"
-message-passing-framework = { path=".." }
+message-passing-framework = { path="../message-passing-framework" }
+common = { path="../common" }

@@ -1,29 +1,6 @@
+use common::{Complex, CustomMsg, F2};
 use message_passing_framework::client::ClientInterface;
-use message_passing_framework::message::{Message, MessageKind};
-
-#[derive(Clone, Copy, Debug)]
-pub enum CustomMsg {
-    Ping,
-    Interact(usize),
-    MovePlayer(usize),
-    Player(usize),
-}
-
-impl MessageKind for CustomMsg {}
-
-#[derive(Clone, Copy, Debug)]
-struct F2 {
-    x: f32,
-    y: f32,
-}
-
-#[derive(Clone, Copy, Debug)]
-struct Complex {
-    a: u32,
-    b: bool,
-    c: f32,
-    d: [F2; 2],
-}
+use message_passing_framework::message::Message;
 
 #[tokio::main]
 async fn main() {

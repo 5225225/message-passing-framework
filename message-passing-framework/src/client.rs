@@ -1,8 +1,9 @@
 use crate::connection::Connection;
 use crate::message::{Message, MessageKind};
 use crate::Command;
+use parking_lot::Mutex;
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::sync::{mpsc, mpsc::Sender, oneshot};
 use tokio::task;
 

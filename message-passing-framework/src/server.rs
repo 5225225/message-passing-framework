@@ -1,7 +1,8 @@
 use crate::connection::Connection;
 use crate::message::{Message, MessageKind};
+use parking_lot::Mutex;
 use std::collections::VecDeque;
-use std::sync::{Arc, Mutex};
+use std::sync::Arc;
 use tokio::net::TcpListener;
 
 pub struct ServerInterface<T: MessageKind> {
@@ -27,22 +28,20 @@ impl<T: MessageKind> ServerInterface<T> {
     }
 
     pub async fn update(&mut self) {
-        if self.messages_in.lock().expect("poisoned lock").len() > 0 {
-            let mut write = self.messages_in.lock().expect("poisoned lock");
+        if self.messages_in.lock().len() > 0 {
+            let mut write = self.messages_in.lock();
             while let Some(msg) = write.pop_front() {
                 println!("[Server] got msg {}", msg);
             }
         }
 
-        /*
-                   for connection in self.connections.write().unwrap().iter_mut() {
-        //connection.ping().await;
-        }
-        */
+        self.connections
+            .lock()
+            .retain(|connection| connection.is_connected());
     }
 
     pub async fn send_to_all(&mut self, msg: Message<T>) {
-        for connection in self.connections.lock().unwrap().iter_mut() {
+        for connection in self.connections.lock().iter_mut() {
             connection.send(msg.clone()).await;
         }
     }
@@ -52,11 +51,11 @@ impl<T: MessageKind> ServerInterface<T> {
     }
 
     pub fn connection_count(&mut self) -> usize {
-        self.connections.lock().unwrap().len()
+        self.connections.lock().len()
     }
 
     pub fn pop_message(&mut self) -> Option<Message<T>> {
-        self.messages_in.lock().unwrap().pop_front()
+        self.messages_in.lock().pop_front()
     }
 
     fn listen_for_connections(&self) {
@@ -83,7 +82,7 @@ impl<T: MessageKind> ServerInterface<T> {
                 //connection.ping().await;
                 connection.start_read_loop();
                 connection.start_write_loop();
-                let mut write = connections.lock().expect("poisoned lock");
+                let mut write = connections.lock();
                 write.push(connection);
             }
         });

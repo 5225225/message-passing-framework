@@ -4,7 +4,6 @@ pub mod client;
 pub mod connection;
 pub mod message;
 pub mod server;
-pub mod ts_queue;
 
 use message::{Message, MessageKind};
 use tokio::sync::oneshot;

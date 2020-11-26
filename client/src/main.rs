@@ -5,8 +5,11 @@ use message_passing_framework::message::Message;
 #[tokio::main]
 async fn main() {
     let mut client: ClientInterface<CustomMsg> = ClientInterface::new();
-    println!("{:?}", client.connect("127.0.0.1", 8080).await);
-    println!("size of CustomMsg {:?}", std::mem::size_of::<CustomMsg>());
+    println!(
+        "Connectinon status: {:?}",
+        client.connect("127.0.0.1", 8080).await
+    );
+    //println!("size of CustomMsg {:?}", std::mem::size_of::<CustomMsg>());
     let mut message: Message<CustomMsg> = Message::new(CustomMsg::MovePlayer(3413));
 
     message.push(Complex {

@@ -6,6 +6,8 @@ use message_passing_framework::server::ServerInterface;
 async fn main() {
     let mut server: ServerInterface<CustomMsg> = ServerInterface::new(8080);
     server.start().await;
+    let ping = Message::new(CustomMsg::Ping);
+    server.ping_loop(ping, 100);
     let mut connection_count = 0;
 
     loop {
@@ -26,10 +28,11 @@ async fn main() {
             match msg.header.id {
                 CustomMsg::Player(_) => {}
                 CustomMsg::Ping => {}
+                CustomMsg::Disconnect => {}
                 CustomMsg::Interact(_) => {}
                 CustomMsg::MovePlayer(_) => {
-                    let parse: Complex = msg.pull();
-                    println!("parsed bytes for MovePlayer: {:#?}", parse);
+                    let _: Complex = msg.pull();
+                    //println!("parsed bytes for MovePlayer: {:#?}", parse);
                 }
             }
         }

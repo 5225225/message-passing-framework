@@ -3,6 +3,7 @@ use message_passing_framework::message::MessageKind;
 #[derive(Clone, Copy, Debug)]
 pub enum CustomMsg {
     Ping,
+    Disconnect,
     Interact(usize),
     MovePlayer(usize),
     Player(usize),

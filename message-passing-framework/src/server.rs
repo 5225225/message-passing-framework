@@ -4,6 +4,7 @@ use parking_lot::Mutex;
 use std::collections::VecDeque;
 use std::sync::Arc;
 use tokio::net::TcpListener;
+use tokio::time::{sleep, Duration};
 
 pub struct ServerInterface<T: MessageKind> {
     port: u16,
@@ -35,14 +36,20 @@ impl<T: MessageKind> ServerInterface<T> {
             }
         }
 
-        self.connections
-            .lock()
-            .retain(|connection| connection.is_connected());
+        self.connections.lock().retain(|connection| {
+            let retain = connection.is_connected();
+
+            if !retain {
+                println!("[Server] client disconnected on {:?}", connection.peer_addr);
+            }
+
+            retain
+        });
     }
 
     pub async fn send_to_all(&mut self, msg: Message<T>) {
         for connection in self.connections.lock().iter_mut() {
-            connection.send(msg.clone()).await;
+            connection.send(msg.clone());
         }
     }
 
@@ -64,7 +71,7 @@ impl<T: MessageKind> ServerInterface<T> {
         let messages_in = self.messages_in.clone();
 
         tokio::spawn(async move {
-            let addr = format!("127.0.0.1:{}", port);
+            let addr = format!("0.0.0.0:{}", port);
             println!("[Server] starting on {}", addr);
             let listener = match TcpListener::bind(addr).await {
                 Ok(listener) => listener,
@@ -84,6 +91,21 @@ impl<T: MessageKind> ServerInterface<T> {
                 connection.start_write_loop();
                 let mut write = connections.lock();
                 write.push(connection);
+            }
+        });
+    }
+
+    pub fn ping_loop(&self, ping_msg: Message<T>, sleep_millis: u64) {
+        let connections = self.connections.clone();
+
+        tokio::spawn(async move {
+            let sleep_duration = Duration::from_millis(sleep_millis);
+            loop {
+                for connection in connections.lock().iter_mut() {
+                    connection.send(ping_msg.clone());
+                }
+
+                sleep(sleep_duration).await;
             }
         });
     }

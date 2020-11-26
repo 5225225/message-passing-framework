@@ -35,7 +35,7 @@ impl<T: MessageKind> ClientInterface<T> {
                         let _ = resp.send(res);
                     }
                     Command::Send { msg, resp } => {
-                        connection.send(msg).await;
+                        connection.send(msg);
                         let _ = resp.send(Ok(()));
                     }
                     Command::Ping { resp } => {

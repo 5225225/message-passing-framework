@@ -49,7 +49,7 @@ impl<T: MessageKind> Message<T> {
             let byte_slice: &[u8] = std::slice::from_raw_parts(byte_ptr, std::mem::size_of::<V>());
 
             std::ptr::copy(
-                &byte_slice[0],
+                byte_ptr,
                 self.body.as_mut_ptr().offset(i as isize),
                 std::mem::size_of::<V>(),
             );
@@ -63,10 +63,7 @@ impl<T: MessageKind> Message<T> {
         let i = self.body.len() - bytes;
 
         let out = unsafe {
-            let data_ptr = self.body.as_ptr().offset(i as isize);
-            let byte_slice: &[u8] = std::slice::from_raw_parts(data_ptr, bytes);
-
-            std::mem::transmute_copy(&byte_slice[0])
+            self.body.as_ptr().offset(i as isize).cast::<V>().read_unaligned()
         };
 
         self.body.resize(i, 0);
@@ -112,7 +109,7 @@ impl<T: MessageKind> From<&[u8]> for Message<T> {
             panic!("no, this is not header");
         }
 
-        let header: MessageHeader<T> = unsafe { std::mem::transmute_copy(&bytes[0]) };
+        let header: MessageHeader<T> = unsafe { bytes.as_ptr().cast::<MessageHeader<T>>().read_unaligned() };
 
         if header.size != bytes_len as u32 {
             panic!(
